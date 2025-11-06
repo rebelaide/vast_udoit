@@ -9,20 +9,17 @@ from gspread_dataframe import set_with_dataframe
 import pandas as pd
 import math
 from urllib.parse import urljoin, urlparse
-import PyPDF2
 import io
-from PIL import Image
-import base64
 
 # --------------------------------------------------------------
 # 1️⃣ CONSTANTS – your secrets (keep notebook private)
 # --------------------------------------------------------------
-CANVAS_API_URL   = userdata.get('CANVAS_API_URL')
-CANVAS_API_KEY   = userdata.get('CANVAS_API_KEY')
-YOUTUBE_API_KEY  = userdata.get('YOUTUBE_API_KEY')
+CANVAS_API_URL = userdata.get('CANVAS_API_URL')
+CANVAS_API_KEY = userdata.get('CANVAS_API_KEY')
+YOUTUBE_API_KEY = userdata.get('YOUTUBE_API_KEY')
 
 YT_CAPTION_URL = "https://www.googleapis.com/youtube/v3/captions"
-YT_VIDEO_URL   = "https://www.googleapis.com/youtube/v3/videos"
+YT_VIDEO_URL = "https://www.googleapis.com/youtube/v3/videos"
 
 YT_PATTERN = (
     r'(?:https?://)?(?:[0-9A-Z-]+.)?(?:youtube|youtu|youtube-nocookie).'
@@ -173,7 +170,7 @@ def _check_youtube(task):
         return key, "Unable to Check Youtube Video", ("", "", ""), pages
 
 # ----------------------------------------------------------------------
-# NEW FUNCTIONS: Time handling and totaling
+# Time handling and totaling functions
 # ----------------------------------------------------------------------
 def _consolidate_time(hour_str, minute_str, second_str):
     """
@@ -384,10 +381,6 @@ def _check_color_accessibility(soup, location, accessibility_issues):
 
 def _check_tables_accessibility(soup, location, accessibility_issues):
     """Check for table accessibility issues"""
-    tables
-
-def _check_tables_accessibility(soup, location, accessibility_issues):
-    """Check for table accessibility issues"""
     tables = soup.find_all('table')
     
     for table in tables:
@@ -553,7 +546,7 @@ def _process_html_with_accessibility(soup, course, page, yt_links, media_links, 
     _run_accessibility_checks(soup, course, page, accessibility_issues)
 
 # ----------------------------------------------------------------------
-# MAIN FUNCTION (UPDATED)
+# MAIN FUNCTION
 # ----------------------------------------------------------------------
 def run_caption_report(course_input: str) -> str:
     """Generate caption report and accessibility report, write to Google Sheet with multiple tabs."""
@@ -587,7 +580,7 @@ def run_caption_report(course_input: str) -> str:
         _process_html_with_accessibility(soup, course, location, yt_links, media_links, link_media, lib_media, accessibility_issues)
 
     # --------------------------------------------------------------
-    # Scanning sections with printouts (updated to include accessibility)
+    # Scanning sections with printouts
     # --------------------------------------------------------------
     print("🔎 Scanning Pages …")
     for p in course.get_pages():
@@ -636,7 +629,7 @@ def run_caption_report(course_input: str) -> str:
         _handle_with_accessibility(ann.message, ann.html_url)
 
     # --------------------------------------------------------------
-    # YouTube processing (unchanged)
+    # YouTube processing
     # --------------------------------------------------------------
     print("\n▶️  Checking YouTube captions …")
     yt_tasks, yt_processed = [], {}
@@ -658,7 +651,7 @@ def run_caption_report(course_input: str) -> str:
     yt_links = yt_processed
 
     # --------------------------------------------------------------
-    # Compile VAST results (unchanged)
+    # Compile VAST results
     # --------------------------------------------------------------
     print("\n📊 Compiling VAST results …")
 
@@ -758,88 +751,84 @@ def run_caption_report(course_input: str) -> str:
     ])
 
     # --------------------------------------------------------------
-    # Create or replace Google Sheet with multiple tabs
+    # Create or replace Google Sheet with multiple tabs (NO SHARING)
     # --------------------------------------------------------------
-# --------------------------------------------------------------
-# Create or replace Google Sheet with multiple tabs (NO SHARING)
-# --------------------------------------------------------------
-print("\n📄 Creating or updating Google Sheet …")
-sheet_title = f"{course.name} VAST Report"
+    print("\n📄 Creating or updating Google Sheet …")
+    sheet_title = f"{course.name} VAST Report"
 
-try:
-    existing_sheets = gc.list_spreadsheet_files()
-    sheet = next((s for s in existing_sheets if s["name"] == sheet_title), None)
-except Exception:
-    sheet = None
+    try:
+        existing_sheets = gc.list_spreadsheet_files()
+        sheet = next((s for s in existing_sheets if s["name"] == sheet_title), None)
+    except Exception:
+        sheet = None
 
-if sheet:
-    print(f"♻️  Found existing sheet: {sheet_title}. Updating contents …")
-    sh = gc.open_by_key(sheet["id"])
-    
-    # Ensure we have the worksheets we need
-    worksheet_names = [ws.title for ws in sh.worksheets()]
-    
-    # Get or create VAST Report worksheet
-    if "VAST Report" in worksheet_names:
-        vast_ws = sh.worksheet("VAST Report")
-        vast_ws.clear()
-    else:
-        # If no VAST Report exists, check if we can rename sheet1
-        if len(worksheet_names) == 1 and worksheet_names[0] == "Sheet1":
-            vast_ws = sh.sheet1
-            vast_ws.update_title("VAST Report")
+    if sheet:
+        print(f"♻️  Found existing sheet: {sheet_title}. Updating contents …")
+        sh = gc.open_by_key(sheet["id"])
+        
+        # Ensure we have the worksheets we need
+        worksheet_names = [ws.title for ws in sh.worksheets()]
+        
+        # Get or create VAST Report worksheet
+        if "VAST Report" in worksheet_names:
+            vast_ws = sh.worksheet("VAST Report")
             vast_ws.clear()
         else:
-            # Add new VAST Report worksheet
-            vast_ws = sh.add_worksheet(title="VAST Report", rows=1000, cols=10)
-    
-    # Get or create Accessibility Issues worksheet
-    if "Accessibility Issues" in worksheet_names:
-        accessibility_ws = sh.worksheet("Accessibility Issues")
-        accessibility_ws.clear()
+            # If no VAST Report exists, check if we can rename sheet1
+            if len(worksheet_names) == 1 and worksheet_names[0] == "Sheet1":
+                vast_ws = sh.sheet1
+                vast_ws.update_title("VAST Report")
+                vast_ws.clear()
+            else:
+                # Add new VAST Report worksheet
+                vast_ws = sh.add_worksheet(title="VAST Report", rows=1000, cols=10)
+        
+        # Get or create Accessibility Issues worksheet
+        if "Accessibility Issues" in worksheet_names:
+            accessibility_ws = sh.worksheet("Accessibility Issues")
+            accessibility_ws.clear()
+        else:
+            accessibility_ws = sh.add_worksheet(title="Accessibility Issues", rows=1000, cols=10)
+        
+        # Clean up any unwanted worksheets (but keep at least our two)
+        current_worksheets = sh.worksheets()
+        for ws in current_worksheets:
+            if ws.title not in ["VAST Report", "Accessibility Issues"] and len(current_worksheets) > 2:
+                try:
+                    sh.del_worksheet(ws)
+                    current_worksheets.remove(ws)  # Update our list
+                except Exception as e:
+                    print(f"⚠️  Could not delete worksheet '{ws.title}': {e}")
+                
     else:
+        print(f"🆕 No existing sheet found. Creating new sheet: {sheet_title}")
+        sh = gc.create(sheet_title)
+        vast_ws = sh.sheet1
+        vast_ws.update_title("VAST Report")
+        
+        # Create accessibility worksheet
         accessibility_ws = sh.add_worksheet(title="Accessibility Issues", rows=1000, cols=10)
-    
-    # Clean up any unwanted worksheets (but keep at least our two)
-    current_worksheets = sh.worksheets()
-    for ws in current_worksheets:
-        if ws.title not in ["VAST Report", "Accessibility Issues"] and len(current_worksheets) > 2:
-            try:
-                sh.del_worksheet(ws)
-                current_worksheets.remove(ws)  # Update our list
-            except Exception as e:
-                print(f"⚠️  Could not delete worksheet '{ws.title}': {e}")
-            
-else:
-    print(f"🆕 No existing sheet found. Creating new sheet: {sheet_title}")
-    sh = gc.create(sheet_title)
-    vast_ws = sh.sheet1
-    vast_ws.update_title("VAST Report")
-    
-    # Create accessibility worksheet
-    accessibility_ws = sh.add_worksheet(title="Accessibility Issues", rows=1000, cols=10)
 
-# Write data to worksheets
-print("📝 Writing VAST Report data...")
-set_with_dataframe(vast_ws, vast_df)
+    # Write data to worksheets
+    print("📝 Writing VAST Report data...")
+    set_with_dataframe(vast_ws, vast_df)
 
-print("📝 Writing Accessibility Issues data...")
-set_with_dataframe(accessibility_ws, accessibility_df)
+    print("📝 Writing Accessibility Issues data...")
+    set_with_dataframe(accessibility_ws, accessibility_df)
 
-print(f"\n✅ Report complete for: {course.name}")
-print(f"📎 Google Sheet URL: {sh.url}")
-print(f"⏱️  Total media duration: {total_duration}")
-print(f"♿ Accessibility Issues Found:")
-print(f"   🔴 Errors: {error_count}")
-print(f"   🟡 Suggestions: {suggestion_count}")
-print(f"   🔵 Needs Review: {review_count}")
-print(f"   📊 Total: {len(accessibility_rows)-1}")  # -1 for summary row
+    print(f"\n✅ Report complete for: {course.name}")
+    print(f"📎 Google Sheet URL: {sh.url}")
+    print(f"⏱️  Total media duration: {total_duration}")
+    print(f"♿ Accessibility Issues Found:")
+    print(f"   🔴 Errors: {error_count}")
+    print(f"   🟡 Suggestions: {suggestion_count}")
+    print(f"   🔵 Needs Review: {review_count}")
+    print(f"   📊 Total: {len(accessibility_rows)-1}")  # -1 for summary row
 
-return sh.url
-
+    return sh.url
 
 # ----------------------------------------------------------------------
-# Usage example (unchanged)
+# Usage example
 # ----------------------------------------------------------------------
+# Uncomment the line below to run the function
 # run_caption_report("your_course_id_here")
-
