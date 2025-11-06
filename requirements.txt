@@ -1,6 +1,43 @@
-requests>=2.25.0
-beautifulsoup4>=4.9.0
-gspread>=5.0.0
-gspread-dataframe>=3.3.0
-pandas>=1.3.0
+# Canvas API and web scraping
 canvasapi>=3.0.0
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+lxml>=4.9.0
+
+# Google Sheets integration
+gspread>=5.10.0
+gspread-dataframe>=3.3.0
+google-auth>=2.22.0
+google-auth-oauthlib>=1.0.0
+google-auth-httplib2>=0.1.0
+
+# Data processing
+pandas>=2.0.0
+numpy>=1.24.0
+
+# PDF processing (for accessibility checks)
+PyPDF2>=3.0.0
+
+# Image processing (for accessibility checks)
+Pillow>=10.0.0
+
+# HTML parsing and processing
+html5lib>=1.1
+
+# Concurrent processing
+futures>=3.4.0; python_version < '3.2'
+
+# Regular expressions (built-in, but listing for completeness)
+# re - built into Python
+
+# URL parsing (built-in, but listing for completeness)
+# urllib - built into Python
+
+# Base64 encoding (built-in, but listing for completeness)
+# base64 - built into Python
+
+# I/O operations (built-in, but listing for completeness)
+# io - built into Python
+
+# Math operations (built-in, but listing for completeness)
+# math - built into Python
