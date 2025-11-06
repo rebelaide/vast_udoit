@@ -760,68 +760,86 @@ def run_caption_report(course_input: str) -> str:
     # --------------------------------------------------------------
     # Create or replace Google Sheet with multiple tabs
     # --------------------------------------------------------------
-    print("\n📄 Creating or updating Google Sheet …")
-    sheet_title = f"{course.name} VAST Report"
+# --------------------------------------------------------------
+# Create or replace Google Sheet with multiple tabs (NO SHARING)
+# --------------------------------------------------------------
+print("\n📄 Creating or updating Google Sheet …")
+sheet_title = f"{course.name} VAST Report"
 
-    try:
-        existing_sheets = gc.list_spreadsheet_files()
-        sheet = next((s for s in existing_sheets if s["name"] == sheet_title), None)
-    except Exception:
-        sheet = None
+try:
+    existing_sheets = gc.list_spreadsheet_files()
+    sheet = next((s for s in existing_sheets if s["name"] == sheet_title), None)
+except Exception:
+    sheet = None
 
-    if sheet:
-        print(f"♻️  Found existing sheet: {sheet_title}. Replacing contents …")
-        sh = gc.open_by_key(sheet["id"])
-        # Clear existing worksheets
-        for ws in sh.worksheets():
-            if ws.title != "VAST Report":
-                sh.del_worksheet(ws)
-        
-        # Get or create VAST worksheet
-        try:
-            vast_ws = sh.worksheet("VAST Report")
-            vast_ws.clear()
-        except:
+if sheet:
+    print(f"♻️  Found existing sheet: {sheet_title}. Updating contents …")
+    sh = gc.open_by_key(sheet["id"])
+    
+    # Ensure we have the worksheets we need
+    worksheet_names = [ws.title for ws in sh.worksheets()]
+    
+    # Get or create VAST Report worksheet
+    if "VAST Report" in worksheet_names:
+        vast_ws = sh.worksheet("VAST Report")
+        vast_ws.clear()
+    else:
+        # If no VAST Report exists, check if we can rename sheet1
+        if len(worksheet_names) == 1 and worksheet_names[0] == "Sheet1":
             vast_ws = sh.sheet1
             vast_ws.update_title("VAST Report")
             vast_ws.clear()
-            
-    else:
-        print(f"🆕 No existing sheet found. Creating new sheet: {sheet_title}")
-        sh = gc.create(sheet_title)
-        vast_ws = sh.sheet1
-        vast_ws.update_title("VAST Report")
-
-    # Create accessibility worksheet
-    try:
-        accessibility_ws = sh.add_worksheet(title="Accessibility Issues", rows=1000, cols=10)
-    except:
-        # If worksheet already exists, get it and clear it
+        else:
+            # Add new VAST Report worksheet
+            vast_ws = sh.add_worksheet(title="VAST Report", rows=1000, cols=10)
+    
+    # Get or create Accessibility Issues worksheet
+    if "Accessibility Issues" in worksheet_names:
         accessibility_ws = sh.worksheet("Accessibility Issues")
         accessibility_ws.clear()
+    else:
+        accessibility_ws = sh.add_worksheet(title="Accessibility Issues", rows=1000, cols=10)
+    
+    # Clean up any unwanted worksheets (but keep at least our two)
+    current_worksheets = sh.worksheets()
+    for ws in current_worksheets:
+        if ws.title not in ["VAST Report", "Accessibility Issues"] and len(current_worksheets) > 2:
+            try:
+                sh.del_worksheet(ws)
+                current_worksheets.remove(ws)  # Update our list
+            except Exception as e:
+                print(f"⚠️  Could not delete worksheet '{ws.title}': {e}")
+            
+else:
+    print(f"🆕 No existing sheet found. Creating new sheet: {sheet_title}")
+    sh = gc.create(sheet_title)
+    vast_ws = sh.sheet1
+    vast_ws.update_title("VAST Report")
+    
+    # Create accessibility worksheet
+    accessibility_ws = sh.add_worksheet(title="Accessibility Issues", rows=1000, cols=10)
 
-    # Write data to worksheets
-    set_with_dataframe(vast_ws, vast_df)
-    set_with_dataframe(accessibility_ws, accessibility_df)
+# Write data to worksheets
+print("📝 Writing VAST Report data...")
+set_with_dataframe(vast_ws, vast_df)
 
-    # Share the sheet
-    try:
-        sh.share('', perm_type='anyone', role='reader')
-    except Exception:
-        pass
+print("📝 Writing Accessibility Issues data...")
+set_with_dataframe(accessibility_ws, accessibility_df)
 
-    print(f"\n✅ Report complete for: {course.name}")
-    print(f"📎 Google Sheet URL: {sh.url}")
-    print(f"⏱️  Total media duration: {total_duration}")
-    print(f"♿ Accessibility Issues Found:")
-    print(f"   🔴 Errors: {error_count}")
-    print(f"   🟡 Suggestions: {suggestion_count}")
-    print(f"   🔵 Needs Review: {review_count}")
-    print(f"   📊 Total: {len(accessibility_rows)-1}")  # -1 for summary row
+print(f"\n✅ Report complete for: {course.name}")
+print(f"📎 Google Sheet URL: {sh.url}")
+print(f"⏱️  Total media duration: {total_duration}")
+print(f"♿ Accessibility Issues Found:")
+print(f"   🔴 Errors: {error_count}")
+print(f"   🟡 Suggestions: {suggestion_count}")
+print(f"   🔵 Needs Review: {review_count}")
+print(f"   📊 Total: {len(accessibility_rows)-1}")  # -1 for summary row
 
-    return sh.url
+return sh.url
+
 
 # ----------------------------------------------------------------------
 # Usage example (unchanged)
 # ----------------------------------------------------------------------
 # run_caption_report("your_course_id_here")
+
